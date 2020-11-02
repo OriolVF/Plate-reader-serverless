@@ -35,7 +35,6 @@ namespace TollBooth
             int exportedCount = 0;
             var collectionLink = UriFactory.CreateDocumentCollectionUri(_databaseId, _collectionId);
             List<LicensePlateDataDocument> licensePlates;
-            _log.LogInformation($"Credentials endpointurl: {_endpointUrl} / _authkey: {_authorizationKey} / databaseid: {_databaseId} / _collecionId {_collectionId}");
             using (_client = new DocumentClient(new Uri(_endpointUrl), _authorizationKey))
             {
                 // Retrieve a List of LicensePlateDataDocument objects from the collectionLink where the exported value is false.
