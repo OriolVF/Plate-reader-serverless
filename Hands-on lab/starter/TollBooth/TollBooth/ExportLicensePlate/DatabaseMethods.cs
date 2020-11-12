@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.Documents.Client;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using TollBooth.Models;
 
@@ -71,7 +69,7 @@ namespace TollBooth
                     var response = await _client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(_databaseId, _collectionId, licensePlate.Id), licensePlate);
 
                     var updated = response.Resource;
-                    //_log.Info($"Exported value of updated document: {updated.GetPropertyValue<bool>("exported")}");
+                    _log.LogInformation($"Exported value of updated document: {updated.GetPropertyValue<bool>("exported")}");
                 }
             }
         }

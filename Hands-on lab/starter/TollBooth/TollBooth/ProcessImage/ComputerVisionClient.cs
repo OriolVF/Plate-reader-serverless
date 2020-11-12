@@ -1,17 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Drawing;
+﻿using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using System.Web.Http;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using TollBooth.Models;
 using Polly;
@@ -20,14 +13,14 @@ using Polly.Wrap;
 
 namespace TollBooth
 {
-    public class FindLicensePlateText
+    public class ComputerVisionClient
     {
         private readonly HttpClient _client;
         private readonly ILogger _log;
 
-        public FindLicensePlateText(ILogger log, HttpClient client)
+        public ComputerVisionClient(ILoggerFactory loggerFactory, HttpClient client)
         {
-            _log = log;
+            _log = loggerFactory.CreateLogger<ComputerVisionClient>();
             _client = client;
         }
 

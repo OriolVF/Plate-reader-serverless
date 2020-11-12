@@ -1,20 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Azure.EventGrid;
+using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Extensions.Logging;
 using TollBooth.Models;
 
 namespace TollBooth
 {
-    public class SendToEventGrid
+    public class EventGridPublisher
     {
-        private readonly HttpClient _client;
+        private readonly EventGridClient _client;
         private readonly ILogger _log;
+        private readonly string _topicHostname;
 
-        public SendToEventGrid(ILogger log, HttpClient client)
+        public EventGridPublisher(ILoggerFactory loggerFactory, EventGridClient client)
         {
-            _log = log;
+            _topicHostname = new Uri("https://workshop-sample.westeurope-1.eventgrid.azure.net").Host;
+            _log = loggerFactory.CreateLogger<EventGridPublisher>();
             _client = client;
         }
 
@@ -35,27 +38,21 @@ namespace TollBooth
 
         private async Task Send(string eventType, string subject, LicensePlateData data)
         {
-            // Get the API URL and the API key from settings.
-            var uri = Environment.GetEnvironmentVariable("eventGridTopicEndpoint");
-            var key = Environment.GetEnvironmentVariable("eventGridTopicKey");
-
             _log.LogInformation($"Sending license plate data to the {eventType} Event Grid type");
-            
-            var events = new List<Event<LicensePlateData>>
+
+            var events = new List<EventGridEvent>()
             {
-                new Event<LicensePlateData>()
+                new EventGridEvent()
                 {
                     Data = data,
                     EventTime = DateTime.UtcNow,
                     EventType = eventType,
                     Id = Guid.NewGuid().ToString(),
-                    Subject = subject
+                    Subject = subject,
+                    DataVersion = "v1"
                 }
             };
-
-            _client.DefaultRequestHeaders.Clear();
-            _client.DefaultRequestHeaders.Add("aeg-sas-key", key);
-            await _client.PostAsJsonAsync(uri, events);
+            await _client.PublishEventsAsync(_topicHostname, events);
 
             _log.LogInformation($"Sent the following to the Event Grid topic: {events[0]}");
         }
