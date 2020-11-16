@@ -9,24 +9,27 @@
 
 using System;
 using System.IO;
-using System.Net.Http;
-using System.Net.Mime;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid;
 using Microsoft.Extensions.Logging;
-using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using TollBooth.Models;
 
 namespace TollBooth
 {
-    public static class ProcessImage
+    public class ProcessImage
     {
-        private static HttpClient _client;
+        private readonly ComputerVisionClient _cvClient;
+        private readonly EventGridPublisher _eventGridPublisher;
+        public ProcessImage(ComputerVisionClient cvClient, 
+            EventGridPublisher eventGridPublisher)
+        {
+            _cvClient = cvClient;
+            _eventGridPublisher = eventGridPublisher;
+        }
         private static string GetBlobNameFromUrl(string bloblUrl)
         {
             var uri = new Uri(bloblUrl);
@@ -35,20 +38,19 @@ namespace TollBooth
         }
 
         [FunctionName("ProcessImage")]
-        public static async Task Run([EventGridTrigger]EventGridEvent eventGridEvent,
-            [Blob(blobPath: "{data.url}", access: FileAccess.Read,
-                Connection = "blobStorageConnection")] Stream incomingPlate,
-            ILogger log)
+        public async Task Run([EventGridTrigger] EventGridEvent eventGridEvent,
+                                     [Blob(blobPath: "{data.url}", 
+                                         access: FileAccess.Read,
+                                         Connection = "blobStorageConnection")] Stream incomingPlate,
+                                      ILogger log)
         {
             var licensePlateText = string.Empty;
-            // Reuse the HttpClient across calls as much as possible so as not to exhaust all available sockets on the server on which it runs.
-            _client = _client ?? new HttpClient();
 
             try
             {
                 if (incomingPlate != null)
                 {
-                    var createdEvent = ((JObject)eventGridEvent.Data).ToObject<StorageBlobCreatedEventData>();
+                    var createdEvent = JsonConvert.DeserializeObject<StorageBlobCreatedEventData>(eventGridEvent.Data.ToString());
                     var name = GetBlobNameFromUrl(createdEvent.Url);
 
                     log.LogInformation($"Processing {name}");
@@ -60,10 +62,10 @@ namespace TollBooth
                         licensePlateImage = br.ReadBytes((int)incomingPlate.Length);
                     }
 
-                    licensePlateText = await new FindLicensePlateText(log, _client).GetLicensePlate(licensePlateImage);
+                    licensePlateText = await _cvClient.GetLicensePlate(licensePlateImage);
 
                     // Send the details to Event Grid.
-                    await new SendToEventGrid(log, _client).SendLicensePlateData(new LicensePlateData()
+                    await _eventGridPublisher.SendLicensePlateData(new LicensePlateData()
                     {
                         FileName = name,
                         LicensePlateText = licensePlateText,
