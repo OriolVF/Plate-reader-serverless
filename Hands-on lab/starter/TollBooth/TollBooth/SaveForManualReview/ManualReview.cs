@@ -1,14 +1,7 @@
-// Default URL for triggering event grid function in the local environment.
-// http://localhost:7071/runtime/webhooks/EventGrid?functionName={functionname}
-
-// Learn how to locally debug an Event Grid-triggered function:
-//    https://aka.ms/AA30pjh
-
-// Use for local testing:
-//   https://{ID}.ngrok.io/runtime/webhooks/EventGrid?functionName=ProcessImage
-
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.EventGrid.Models;
@@ -18,11 +11,11 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TollBooth.Models;
 
-namespace TollBooth.SavePlateData
+namespace TollBooth.SaveForManualReview
 {
-    public class SavePlate
+    public class ManualReview
     {
-        [FunctionName("SavePlate")]
+        [FunctionName("ManualReview")]
         public async Task Run([EventGridTrigger] EventGridEvent eventGridEvent, ILogger log)
         {
             try
@@ -32,16 +25,16 @@ namespace TollBooth.SavePlateData
                     var endpointUri = Environment.GetEnvironmentVariable("cosmosDBEndPointUrl");
                     var key = Environment.GetEnvironmentVariable("cosmosDBAuthorizationKey");
                     var databaseName = Environment.GetEnvironmentVariable("cosmosDBDatabaseId");
-                    var containerID = Environment.GetEnvironmentVariable("cosmosDBCollectionId");
+                    var containerID = Environment.GetEnvironmentVariable("cosmosDBNeedsManualReviewId");
                     var licenseTextEvent = JsonConvert.DeserializeObject<LicensePlateData>(eventGridEvent.Data.ToString());
 
                     log.LogInformation($"Processing {licenseTextEvent.FileName} with plate {licenseTextEvent.LicensePlateText}");
 
-                    using (CosmosClient client = new CosmosClient(endpointUri, key))
+                    using (var client = new CosmosClient(endpointUri, key))
                     {
                         var databaseResponse = await client.CreateDatabaseIfNotExistsAsync(databaseName);
                         var db = databaseResponse.Database;
-                        var containerOptions = new ContainerProperties(containerID, "/licensePlateText")
+                        var containerOptions = new ContainerProperties(containerID, "/fileName")
                         {
                             IndexingPolicy = new IndexingPolicy()
                             {
@@ -54,7 +47,7 @@ namespace TollBooth.SavePlateData
                         var response = await container.CreateItemAsync(new
                         {
                             fileName = licenseTextEvent.FileName,
-                            licensePlateText = licenseTextEvent.LicensePlateText,
+                            licensePlateText = string.Empty,
                             timeStamp = licenseTextEvent.TimeStamp,
                             id = Guid.NewGuid()
                         });
@@ -63,7 +56,7 @@ namespace TollBooth.SavePlateData
                             response.StatusCode == HttpStatusCode.Accepted ||
                             response.StatusCode == HttpStatusCode.NoContent)
                         {
-                            log.LogInformation($"Successfully isnerted row with {licenseTextEvent.LicensePlateText} {licenseTextEvent.FileName}");
+                            log.LogInformation($"Successfully isnerted row with {licenseTextEvent.FileName}");
                         }
                         else
                         {
@@ -78,5 +71,6 @@ namespace TollBooth.SavePlateData
                 throw;
             }
         }
+
     }
 }
