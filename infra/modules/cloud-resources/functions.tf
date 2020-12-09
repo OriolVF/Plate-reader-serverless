@@ -26,6 +26,16 @@ resource "azurerm_function_app" "processing" {
   storage_account_access_key = azurerm_storage_account.storagefunctions.primary_access_key
   app_settings = {
         FUNCTIONS_WORKER_RUNTIME = "dotnet"
+        "computerVisionApiUrl" = azurerm_cognitive_account.computervision.endpoint
+        "computerVisionApiKey" = azurerm_cognitive_account.computervision.primary_access_key
+        "eventGridTopicEndpoint" = azurerm_eventgrid_topic.eventstopic.endpoint
+        "eventGridTopicKey" = azurerm_eventgrid_topic.eventstopic.primary_access_key
+        "cosmosDBEndPointUrl" = azurerm_cosmosdb_account.db.endpoint
+        "cosmosDBAuthorizationKey" = azurerm_cosmosdb_account.db.primary_key
+        "cosmosDBDatabaseId" = "LicensePlates"
+        "cosmosDBCollectionId" = "Processed"
+        "cosmosDBNeedsManualReviewId" = "NeedsManualReview"
+        "blobStorageConnection" = azurerm_storage_account.main.primary_connection_string
     }
 }
 
