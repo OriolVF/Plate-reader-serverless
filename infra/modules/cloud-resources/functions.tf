@@ -36,6 +36,7 @@ resource "azurerm_function_app" "processing" {
         "cosmosDBCollectionId" = "Processed"
         "cosmosDBNeedsManualReviewId" = "NeedsManualReview"
         "blobStorageConnection" = azurerm_storage_account.main.primary_connection_string
+        "ServiceBusConnection" = azurerm_servicebus_namespace.namespace.default_primary_connection_string
     }
 }
 
