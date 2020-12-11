@@ -12,7 +12,7 @@ resource "azurerm_eventgrid_topic" "eventstopic" {
   resource_group_name = azurerm_resource_group.main.name
 }
 
-# resource "azurerm_eventgrid_event_subscription" "processImage" {
+# resource "azurerm_eventgrid_event_subscription" "processImageUpload" {
 #   name  = "process-image"
 #   scope = azurerm_resource_group.main.id
 
