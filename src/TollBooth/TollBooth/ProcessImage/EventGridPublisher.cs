@@ -16,7 +16,8 @@ namespace TollBooth
 
         public EventGridPublisher(ILoggerFactory loggerFactory, EventGridClient client)
         {
-            _topicHostname = new Uri("https://workshop-sample.westeurope-1.eventgrid.azure.net").Host;
+            var topicEndpoint = Environment.GetEnvironmentVariable("eventGridTopicEndpoint");
+            _topicHostname = new Uri(topicEndpoint).Host;
             _log = loggerFactory.CreateLogger<EventGridPublisher>();
             _client = client;
         }
