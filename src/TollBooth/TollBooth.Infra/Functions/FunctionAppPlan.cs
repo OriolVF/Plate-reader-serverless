@@ -6,10 +6,9 @@ namespace TollBooth.Infra
 {
     public class FunctionAppPlan : IFunctionAppPlan
     {
-        public FunctionAppPlan(Plan appPlan, string tier, string kind)
+        public FunctionAppPlan(Plan appPlan, string tier)
         {
             Tier = tier;
-            Kind = kind;
             ResourceGroupName = appPlan.ResourceGroupName;
             Id = appPlan.Id;
         }
@@ -17,30 +16,38 @@ namespace TollBooth.Infra
         public string Tier { get; }
         public string Kind { get; }
         public Output<string> ResourceGroupName { get; }
-        public IStorageAccount StorageAccount { get; set; }
         public Input<string> Id { get; }
 
-        public IFunction CreateFunction(string name, Dictionary<string, string> appSettings)
+        public IFunction CreateFunction(string name, Dictionary<string, Output<string>> appSettings)
         {
-            StorageAccount = StorageAccountFactory.CreateStorageAccount(ResourceGroupName, new StorageAccountArgs()
+            var storageAccount = StorageAccountFactory.CreateStorageAccount(ResourceGroupName, new StorageAccountArgs()
             {
-                Name = $"{name}-strg",
-                Tier = "LRS",
-                ReplicationType = "Standard"
+                Name = $"{name}strg",
+                Tier = "Standard",
+                ReplicationType = "LRS"
             });
 
             var app = new Pulumi.Azure.AppService.FunctionApp(name, new FunctionAppArgs
             {
                 ResourceGroupName = ResourceGroupName,
                 AppServicePlanId = Id,
-                StorageConnectionString = StorageAccount.ConnectionString,
+                StorageConnectionString = storageAccount.ConnectionString,
                 Version = "~2",
-                AppSettings = appSettings
+                AppSettings = Map(appSettings)
             });
 
             return new Function(app);
+        }
 
+        private InputMap<string> Map(Dictionary<string, Output<string>> appSettings)
+        {
+            var input = new InputMap<string>();
+            foreach (var setting in appSettings)
+            {
+                input.Add(setting.Key, setting.Value);
+            }
+
+            return input;
         }
     }
-
 }

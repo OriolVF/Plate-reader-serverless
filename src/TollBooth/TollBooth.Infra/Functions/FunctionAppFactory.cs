@@ -3,14 +3,14 @@ using Pulumi.Azure.AppService;
 
 namespace TollBooth.Infra
 {
-    public class FunctionAppFactory : IFunctionAppFactory
+    public static class FunctionAppFactory
     {
-        public IFunctionAppPlan CreateAppPlan(string name, Input<string> resourceGroupName, FunctionAppPlanArgs args)
+        public static IFunctionAppPlan CreateAppPlan(string name, Input<string> resourceGroupName, FunctionAppPlanArgs args)
         {
             var plan = new Plan($"asp-{name}", new PlanArgs
             {
                 ResourceGroupName = resourceGroupName,
-                Kind = args.Kind,
+                Kind = "FunctionApp",
                 Sku = new Pulumi.Azure.AppService.Inputs.PlanSkuArgs
                 {
                     Tier = args.Tier,
@@ -18,7 +18,7 @@ namespace TollBooth.Infra
                 }
             });
 
-            return new FunctionAppPlan(plan, args.Tier, args.Kind);
+            return new FunctionAppPlan(plan, args.Tier);
         }
     }
 

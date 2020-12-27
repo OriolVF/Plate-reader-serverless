@@ -3,18 +3,18 @@ using Pulumi.Azure.EventGrid;
 
 namespace TollBooth.Infra
 {
-    public class EventGridSystemTopicProvider
+    public static class EventGridSystemTopicFactory
     {
-        private SystemTopic _topic;
-
-        public EventGridSystemTopicProvider(Input<string> resourceGroupName, string name, Input<string> resourceId)
+        public static Output<string> Create(Output<string> resourceGroupName, string name, Output<string> resourceId)
         {
-            _topic = new SystemTopic(name, new SystemTopicArgs()
+            var topic = new SystemTopic(name, new SystemTopicArgs()
             {
                 ResourceGroupName = resourceGroupName,
                 TopicType = "Microsoft.Storage.StorageAccounts",
                 SourceArmResourceId = resourceId
             });
+
+            return topic.Id;
         }
     }
 }

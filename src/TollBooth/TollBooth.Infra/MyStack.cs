@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using Pulumi;
 using Pulumi.Azure.Core;
 using Environment = System.Environment;
@@ -14,34 +13,44 @@ namespace TollBooth.Infra
             var resourceGroup = new ResourceGroup($"rg-oriol-tollbooth-{stack}");
             var resourceGroupName = resourceGroup.Name;
 
-            var functionProvider = new FunctionApp("funcapps", resourceGroupName);
-            var processImageFunction = functionProvider.AddFunction("ProcessImage", new Dictionary<string, string>()
+            var appStorage = StorageAccountFactory.CreateStorageAccount(resourceGroupName, new StorageAccountArgs()
             {
-                { "FUNCTIONS_WORKER_RUNTIME", "dotnet" },
+                Name = "plates",
+                ReplicationType = "LRS",
+                Tier = "Standard"
             });
-            var manualReview = functionProvider.AddFunction("ManualReview", new Dictionary<string, string>()
+            appStorage.CreateContainer("export");
+            appStorage.CreateContainer("images");
+
+            var db = CosmosDbFactory.CreateSqlDb("plates-db", resourceGroupName);
+            db.CreateContainer("Processed", "/licensePlateText");
+            db.CreateContainer("NeedsManualReview", "/fileName");
+
+
+            var cv = ComputerVisionFactory.Create("cv-ocr", resourceGroupName);
+            var topic = EventGridTopicFactory.Create(resourceGroupName, "events-topic");
+
+            var functionApp = FunctionAppFactory.CreateAppPlan("functions-app", resourceGroupName, new FunctionAppPlanArgs()
             {
-                { "FUNCTIONS_WORKER_RUNTIME", "dotnet" },
-            });
-            var savePlate = functionProvider.AddFunction("SavePlate",  new Dictionary<string, string>()
+                Tier = "Dynamic",
+                Size = "Y1"
+            }).CreateFunction("functions", new Dictionary<string, Output<string>>()
             {
-                { "FUNCTIONS_WORKER_RUNTIME", "dotnet" },
+                { "FUNCTIONS_WORKER_RUNTIME", Output.Create("dotnet") },
+                {"computerVisionApiUrl", cv.EndpointUrl },
+                {"computerVisionApiKey", cv.ApiKey },
+                {"eventGridTopicEndpoint", topic.Endpoint },
+                {"eventGridTopicKey", topic.Key },
+                {"cosmosDBEndPointUrl", db.PrimaryEndpoint },
+                {"cosmosDBAuthorizationKey", db.AccessKey },
+                {"cosmosDBDatabaseId", Output.Create("LicensePlates") },
+                {"cosmosDBCollectionId", Output.Create("Processed") },
+                {"cosmosDBNeedsManualReviewId", Output.Create("NeedsManualReview") },
+                {"blobStorageConnection", appStorage.ConnectionString }
+                
             });
 
-            var storageProvider = new StorageProvider(resourceGroupName, "plates");
-            storageProvider.AddContainer("export");
-            storageProvider.AddContainer("images");
-
-            var cosmosDbProvider = new CosmosDbProvider(resourceGroupName, "plates-db");
-            cosmosDbProvider.CreateSqlDb("LicensePlates");
-            cosmosDbProvider.CreateContainer("Processed", "/licensePlateText", "Consistent");
-            cosmosDbProvider.CreateContainer("NeedsManualReview", "/fileName", "Consistent");
-
-            var cv = new ComputerVisionProvider("computer-vision-ocr", resourceGroupName);
-            var systemTopic = new EventGridSystemTopicProvider(resourceGroupName, "eventgrid-system-topic",
-                storageProvider.StorageAccount.Id);
-
-            var eventgridTopic = new EventgGridTopic(resourceGroupName, "events-topic");
+            EventGridSystemTopicFactory.Create(resourceGroupName, "sys-topic", appStorage.Id);
         }
     }
 }
