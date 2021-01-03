@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using Pulumi;
 using Pulumi.Azure.Core;
+using Pulumi.Azure.EventGrid;
 using Environment = System.Environment;
 
 namespace TollBooth.Infra
@@ -47,10 +49,35 @@ namespace TollBooth.Infra
                 {"cosmosDBCollectionId", Output.Create("Processed") },
                 {"cosmosDBNeedsManualReviewId", Output.Create("NeedsManualReview") },
                 {"blobStorageConnection", appStorage.ConnectionString }
-                
+
+            }, new DeploymentArgs
+            {
+                PathToApp = Path.Combine("..", "TollBooth", "bin", "Debug", "netcoreapp3.1")
+            });
+        
+
+            var systemTopic = EventGridSystemTopicFactory.Create(resourceGroupName, "sys-topic", appStorage.Id);
+
+            var args = new Pulumi.Azure.EventGrid.Inputs.SystemTopicEventSubscriptionAzureFunctionEndpointArgs()
+            {
+                FunctionId = Output.Format($"{functionApp.Id}/functions/ProcessImage")
+            };
+
+            var SystemTopicSub = new SystemTopicEventSubscription("processImage", new SystemTopicEventSubscriptionArgs()
+            {
+                ResourceGroupName = resourceGroupName,
+                SystemTopic = systemTopic.Name,
+                AzureFunctionEndpoint = args
             });
 
-            EventGridSystemTopicFactory.Create(resourceGroupName, "sys-topic", appStorage.Id);
+            var topicSub = new EventSubscription("processedPlate", new EventSubscriptionArgs()
+            {
+                AzureFunctionEndpoint = new Pulumi.Azure.EventGrid.Inputs.EventSubscriptionAzureFunctionEndpointArgs()
+                {
+                    FunctionId = Output.Format($"{functionApp.Id}/functions/SavePlate"),
+                },
+                res
+            })
         }
     }
 }

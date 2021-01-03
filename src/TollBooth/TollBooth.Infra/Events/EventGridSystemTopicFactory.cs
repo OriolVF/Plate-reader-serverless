@@ -5,7 +5,7 @@ namespace TollBooth.Infra
 {
     public static class EventGridSystemTopicFactory
     {
-        public static Output<string> Create(Output<string> resourceGroupName, string name, Output<string> resourceId)
+        public static EventGridSystemTopic Create(Output<string> resourceGroupName, string name, Output<string> resourceId)
         {
             var topic = new SystemTopic(name, new SystemTopicArgs()
             {
@@ -13,8 +13,17 @@ namespace TollBooth.Infra
                 TopicType = "Microsoft.Storage.StorageAccounts",
                 SourceArmResourceId = resourceId
             });
-
-            return topic.Id;
+            return new EventGridSystemTopic
+            {
+                Id = topic.Id,
+                Name = topic.Name
+            };
         }
+    }
+
+    public class EventGridSystemTopic
+    {
+        public Output<string> Id { get; set; }
+        public Output<string> Name { get; set; }
     }
 }

@@ -5,13 +5,13 @@ namespace TollBooth.Infra
 {
     public class StorageAccount : IStorageAccount
     {
-        private Input<string> Name { get; }
+        public Output<string> Name { get; }
 
         public Output<string> ConnectionString { get; }
 
         public Output<string> Id { get; }
 
-        public StorageAccount(Input<string> name, Output<string> connectionString, Output<string> id)
+        public StorageAccount(Output<string> name, Output<string> connectionString, Output<string> id)
         {
             Name = name;
             ConnectionString = connectionString;

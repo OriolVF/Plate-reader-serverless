@@ -7,5 +7,6 @@ namespace TollBooth.Infra
         void CreateContainer(string containerName);
         Output<string> ConnectionString { get; }
         Output<string> Id { get; }
+        Output<string> Name { get; }
     }
 }
