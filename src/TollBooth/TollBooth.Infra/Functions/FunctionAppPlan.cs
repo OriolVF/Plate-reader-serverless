@@ -20,7 +20,7 @@ namespace TollBooth.Infra
 
         public IFunction CreateFunction(string name, Dictionary<string, Output<string>> appSettings)
         {
-            var storageAccount = StorageAccountFactory.CreateStorageAccount(ResourceGroupName, new StorageAccountArgs()
+            var storageAccount = StorageAccountFactory.Create(ResourceGroupName, new StorageAccountArgs()
             {
                 Name = $"{name}strg",
                 Tier = "Standard",

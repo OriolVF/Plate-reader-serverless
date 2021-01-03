@@ -13,7 +13,7 @@ namespace TollBooth.Infra
             var resourceGroup = new ResourceGroup($"rg-oriol-tollbooth-{stack}");
             var resourceGroupName = resourceGroup.Name;
 
-            var appStorage = StorageAccountFactory.CreateStorageAccount(resourceGroupName, new StorageAccountArgs()
+            var appStorage = StorageAccountFactory.Create(resourceGroupName, new StorageAccountArgs()
             {
                 Name = "plates",
                 ReplicationType = "LRS",
