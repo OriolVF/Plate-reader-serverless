@@ -2,7 +2,6 @@
 using System.IO;
 using Pulumi;
 using Pulumi.Azure.Core;
-using Pulumi.Azure.EventGrid;
 using Environment = System.Environment;
 
 namespace TollBooth.Infra
@@ -27,7 +26,6 @@ namespace TollBooth.Infra
             var db = CosmosDbFactory.CreateSqlDb("plates-db", resourceGroupName);
             db.CreateContainer("Processed", "/licensePlateText");
             db.CreateContainer("NeedsManualReview", "/fileName");
-
 
             var cv = ComputerVisionFactory.Create("cv-ocr", resourceGroupName);
             var topic = EventGridTopicFactory.Create(resourceGroupName, "events-topic");
@@ -55,29 +53,10 @@ namespace TollBooth.Infra
                 PathToApp = Path.Combine("..", "TollBooth", "bin", "Debug", "netcoreapp3.1")
             });
         
-
             var systemTopic = EventGridSystemTopicFactory.Create(resourceGroupName, "sys-topic", appStorage.Id);
-
-            var args = new Pulumi.Azure.EventGrid.Inputs.SystemTopicEventSubscriptionAzureFunctionEndpointArgs()
-            {
-                FunctionId = Output.Format($"{functionApp.Id}/functions/ProcessImage")
-            };
-
-            var SystemTopicSub = new SystemTopicEventSubscription("processImage", new SystemTopicEventSubscriptionArgs()
-            {
-                ResourceGroupName = resourceGroupName,
-                SystemTopic = systemTopic.Name,
-                AzureFunctionEndpoint = args
-            });
-
-            var topicSub = new EventSubscription("processedPlate", new EventSubscriptionArgs()
-            {
-                AzureFunctionEndpoint = new Pulumi.Azure.EventGrid.Inputs.EventSubscriptionAzureFunctionEndpointArgs()
-                {
-                    FunctionId = Output.Format($"{functionApp.Id}/functions/SavePlate"),
-                },
-                res
-            })
+            EventGridSystemSubscriptionFactory.CreateForFunctionApp(functionApp.Id, resourceGroupName, systemTopic.Name, "processImage", "ProcessImage");
+            EventGridSubscriptionFactory.CreateForFunctionApp(functionApp.Id, topic.Name, "processedPlate", "SavePlate" );
+            EventGridSubscriptionFactory.CreateForFunctionApp(functionApp.Id, topic.Name, "queuePlateForManualCheckup", "ManualReview");
         }
     }
 }

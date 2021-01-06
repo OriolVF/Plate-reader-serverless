@@ -12,7 +12,7 @@ namespace TollBooth.Infra
                 ResourceGroupName = resourceGroupName,
             });
 
-            return new EventGridTopic(topic.Endpoint, topic.PrimaryAccessKey);
+            return new EventGridTopic(topic.Endpoint, topic.PrimaryAccessKey, topic.Name);
         }
     }
 }
